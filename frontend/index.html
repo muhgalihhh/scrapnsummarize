@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scraper & Summarizer Berita</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        input, button, select, #persentase_ringkasan {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+        }
+        button {
+            cursor: pointer;
+        }
+        pre {
+            white-space: pre-wrap;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        #hasil, #ringkasan {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Scraper & Summarizer Berita</h1>
+    <label for="jenis_website">Pilih Website:</label>
+    <select id="jenis_website">
+        <option value="detik.com">Detik.com</option>
+        <option value="kompas.com">Kompas.com</option>
+    </select>
+    <label for="url_berita">URL Berita:</label>
+    <input type="text" id="url_berita" placeholder="Masukkan URL Berita">
+    <label for="persentase_ringkasan">Persentase Ringkasan:</label>
+    <input type="range" id="persentase_ringkasan" min="10" max="50" value="30">
+    <span id="persentase_label">30%</span>
+    <button onclick="scrapeBerita()">Ambil Data Berita</button>
+    <button onclick="summarizeBerita()">Ringkas Berita</button>
+    <h2>Hasil Scraping:</h2>
+    <pre id="hasil"></pre>
+    <h2>Ringkasan Berita:</h2>
+    <pre id="ringkasan"></pre>
+    <script>
+        document.getElementById('persentase_ringkasan').addEventListener('input', function () {
+            document.getElementById('persentase_label').textContent = `${this.value}%`;
+        });
+
+        async function scrapeBerita() {
+            const url = document.getElementById('url_berita').value;
+            const jenisWebsite = document.getElementById('jenis_website').value;
+            const hasilElement = document.getElementById('hasil');
+            if (!url) {
+                alert('URL tidak boleh kosong!');
+                return;
+            }
+            try {
+                const response = await fetch('http://localhost:5000/scrape_berita', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, jenis_website: jenisWebsite })
+                });
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                hasilElement.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                hasilElement.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function summarizeBerita() {
+            const url = document.getElementById('url_berita').value;
+            const jenisWebsite = document.getElementById('jenis_website').value;
+            const persentase = document.getElementById('persentase_ringkasan').value / 100;
+            const ringkasanElement = document.getElementById('ringkasan');
+            if (!url) {
+                alert('URL tidak boleh kosong!');
+                return;
+            }
+            try {
+                const response = await fetch('http://localhost:5000/summarize_berita', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, jenis_website: jenisWebsite, persentase })
+                });
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                ringkasanElement.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                ringkasanElement.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
