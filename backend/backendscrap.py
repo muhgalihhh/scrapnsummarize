@@ -7,10 +7,11 @@ from bs4 import BeautifulSoup
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer  # Mengimpor PorterStemmer
 from nltk.tokenize import word_tokenize
 
 # Download NLTK resources
-nltk.download('punkt') 
+nltk.download('punkt')
 nltk.download('all')
 nltk.download('stopwords')
 
@@ -120,9 +121,10 @@ class TextSummarizer:
             self.stopwords = set(stopwords.words('indonesian'))
         except:
             self.stopwords = {'yang', 'di', 'ke', 'dari', 'pada', 'dalam', 'untuk', 'dengan'}
+        self.stemmer = PorterStemmer()  # Inisialisasi stemmer
 
     def preprocess_text(self, text):
-    # Daftar pola untuk dihapus
+        # Daftar pola untuk dihapus
         removal_patterns = [
             r'Komik Si Calus.*',  # Hapus bagian komik
             r'Loading\.\.\..*',  # Hapus bagian loading
@@ -144,8 +146,10 @@ class TextSummarizer:
         words = word_tokenize(text)
         words = [word for word in words if word not in self.stopwords]
         
+        # Terapkan stemming pada kata-kata
+        words = [self.stemmer.stem(word) for word in words]
+        
         return words
-
 
     def tokenize_sentences(self, text):
         sentences = re.split(r'(?<=[.!?])\s+', text)
@@ -196,15 +200,19 @@ def summarize_berita():
     url = data.get('url')
     jenis_website = data.get('jenis_website')
     persentase = data.get('persentase', 0.3)
+
     if not url or not jenis_website:
         return jsonify({'error': 'URL dan jenis website harus disertakan'}), 400
+
     scraper = BeritaScraper()
-    artikel = scraper.scrape_berita(url, jenis_website)
-    if 'error' in artikel:
-        return jsonify(artikel), 400
+    hasil_scraping = scraper.scrape_berita(url, jenis_website)
+    if 'isi' not in hasil_scraping:
+        return jsonify({'error': 'Isi artikel tidak ditemukan'}), 400
+
     summarizer = TextSummarizer()
-    ringkasan = summarizer.summarize(artikel['isi'], persentase)
-    return jsonify({'ringkasan': ringkasan, 'judul_asli': artikel.get('judul', '')})
+    ringkasan = summarizer.summarize(hasil_scraping['isi'], persentase)
+    
+    return jsonify({'judul': hasil_scraping['judul'], 'ringkasan': ringkasan})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
