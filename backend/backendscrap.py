@@ -10,7 +10,8 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
 # Download NLTK resources
-nltk.download('punkt')
+nltk.download('punkt') 
+nltk.download('all')
 nltk.download('stopwords')
 
 app = Flask(__name__)
@@ -26,13 +27,67 @@ class BeritaScraper:
                 'judul': '.detail__title',
                 'penulis': '.detail__author',
                 'tanggal': '.detail__date',
-                'isi': '.detail__body-text  p:not(.para_caption)'
+                'isi': '.detail__body-text > p:not(.para_caption):not(.ads):not([class]):not([id])'
             },
             'kompas.com': {
                 'judul': '.read__title',
-                'penulis': '.read__author',
+                'penulis': '.credit-title-name',
                 'tanggal': '.read__time',
-                'isi': '.read__content p:not(:has(strong))'
+                'isi': '.read__content p:not(.read__more):not(.read__share):not([class]):not([id]):not(strong)'
+            },
+            'cnnindonesia.com': {
+                'judul': 'h1.leading-9',
+                'penulis': '.text-cnn_black_light3.text-sm',
+                'tanggal': '.text-cnn_grey.text-sm.mb-4',
+                'isi': '.detail-text p'
+            },
+            'liputan6.com': {
+                'judul': '.read-page--header--title',
+                'penulis': '.read-page--header--author__name',
+                'tanggal': '.read-page--header--author__modified-time',
+                'isi': '.article-content-body__item-content > p:not(.baca-juga):not([class]):not([id])'
+            },
+            'tribunnews.com': {
+                'judul': '#arttitle',
+                'penulis': '#penulis',
+                'tanggal': 'time',
+                'isi': '#article_content > p:not(.baca):not([class]):not([id])'
+            },
+            'republika.co.id': {
+                'judul': '.max-card__title h1, .max-card__titlep',
+                'penulis': '.max-card__title a',
+                'tanggal': '.date',
+                'isi': '.article-content p:not(.premium-content):not([class]):not([id])'
+            },
+            'sindonews.com': {
+                'judul': '.detail-title',
+                'penulis': '.detail-nama-redaksi',
+                'tanggal': '.detail-date-artikel',
+                'isi': '.detail-desc > p:not([class]):not([id])'
+            },
+            'okezone.com': {
+                'judul': '.title h1',
+                'penulis': '.reporter .namerep a',
+                'tanggal': '.reporter .namerep b',
+                'isi': '#contentx > p:not(.baca-juga):not(#bacajuga):not([class]):not([id])'
+            },
+            'suara.com': {
+                'judul': '.info h1',
+                'penulis': '.writer a',
+                'tanggal': '.date',
+                'isi': '.detail-content > p:not(.baca-juga-new):not([class]):not([id])'
+            },
+            'idntimes.com': {
+                'judul': '.title-text',
+                'penulis': '.author-name a',
+                'tanggal': '.date',
+                'isi': '#article-description p'
+            },
+            'merdeka.com': {
+                'judul': '.article-title',
+                'penulis': '.dt--postcredit-editor-desc',
+                'tanggal': 'time span',
+                'isi': '.article p'
             }
         }
 
@@ -67,18 +122,28 @@ class TextSummarizer:
             self.stopwords = {'yang', 'di', 'ke', 'dari', 'pada', 'dalam', 'untuk', 'dengan'}
 
     def preprocess_text(self, text):
-        print(f"Teks asli: {text}")  # Debug teks asli
+    # Daftar pola untuk dihapus
+        removal_patterns = [
+            r'Komik Si Calus.*',  # Hapus bagian komik
+            r'Loading\.\.\..*',  # Hapus bagian loading
+            r'Ikuti Whatsapp Channel.*',  # Hapus bagian channel
+            r'sumber\s*:\s*Antara.*',  # Hapus sumber berita
+            r'Baca Juga:.*',  # Hapus bagian "Baca Juga"
+            r'REPUBLIKA\.CO\.ID.*?--',  # Hapus header/metadata awal
+        ]
         
-        # Bersihkan teks dari pola-pola iklan
-        text = re.sub(r'ADVERTISEMENT.*?CONTENT', '', text, flags=re.IGNORECASE)
-        text = re.sub(r'SCROLL TO CONTINUE.*?$', '', text, flags=re.IGNORECASE)
-
-        # Lanjutkan ke langkah preprocessing lainnya
+        # Hapus pola-pola yang tidak diinginkan
+        for pattern in removal_patterns:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+        
+        # Normalisasi dan bersihkan teks
+        text = re.sub(r'[^\w\s]', '', text)  # Hapus karakter non-alfanumerik
         text = text.lower()
-        text = re.sub(r'[^a-zA-Z\s]', '', text)  # Hanya huruf dan spasi
+        text = re.sub(r'\s+', ' ', text).strip()  # Normalisasi spasi
+        
         words = word_tokenize(text)
         words = [word for word in words if word not in self.stopwords]
-        print(f"Hasil preprocessing: {words}")  # Debug hasil preprocessing
+        
         return words
 
 
