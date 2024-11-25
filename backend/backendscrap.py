@@ -120,7 +120,7 @@ class TextSummarizer:
         try:
             self.stopwords = set(stopwords.words('indonesian'))
         except:
-            self.stopwords = {'yang', 'di', 'ke', 'dari', 'pada', 'dalam', 'untuk', 'dengan'}
+            self.stopwords = {'yang', 'di', 'ke', 'dari', 'pada', 'dalam', 'untuk', 'dengan', 'dan', 'atau', 'juga', 'sebagai', 'adalah', 'oleh', 'agar', 'sehingga', 'karena', 'sebelum', 'sesudah', 'saat', 'ketika', 'hingga', 'sampai', 'ataupun', 'melainkan', 'sebab', 'yaitu', 'yakni', 'apabila', 'jika', 'supaya', 'biar', 'walaupun', 'meskipun', 'sekalipun', 'seandainya', 'seakan', 'seolah', 'sebagaimana', 'sebagian', 'segenap', 'semua', 'setiap', 'masing-masing', 'semakin', 'semampu', 'sepanjang', 'selama', 'sewaktu', 'seraya', 'serta', 'serti', 'seperti', 'sepertinya', 'seakan-akan', 'seolah-olah', 'sebab', 'karena', 'karena itu', 'sehingga', 'sebab itu', 'karena itu', 'oleh karena itu', 'sebab', 'karena', 'karena itu', 'sehingga', 'sebab itu', 'karena itu', 'oleh karena itu'}
         self.stemmer = PorterStemmer()  # Inisialisasi stemmer
 
     def preprocess_text(self, text):
@@ -213,6 +213,47 @@ def summarize_berita():
     ringkasan = summarizer.summarize(hasil_scraping['isi'], persentase)
     
     return jsonify({'judul': hasil_scraping['judul'], 'ringkasan': ringkasan})
+
+
+from rouge_score import rouge_scorer
+
+
+@app.route('/cek_rouge', methods=['POST'])
+def cek_rouge():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid JSON payload'}), 400
+
+    teks_asli = data.get('teks_asli')
+    ringkasan = data.get('ringkasan')
+
+    if not teks_asli or not ringkasan:
+        return jsonify({'error': 'Teks asli dan ringkasan harus disertakan'}), 400
+
+    # Menghitung skor ROUGE
+    scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
+    scores = scorer.score(teks_asli, ringkasan)
+
+    # Mengubah hasil ROUGE ke dalam format JSON-friendly
+    rouge_scores = {
+        'rouge1': {
+            'precision': scores['rouge1'].precision,
+            'recall': scores['rouge1'].recall,
+            'f1': scores['rouge1'].fmeasure
+        },
+        'rouge2': {
+            'precision': scores['rouge2'].precision,
+            'recall': scores['rouge2'].recall,
+            'f1': scores['rouge2'].fmeasure
+        },
+        'rougeL': {
+            'precision': scores['rougeL'].precision,
+            'recall': scores['rougeL'].recall,
+            'f1': scores['rougeL'].fmeasure
+        }
+    }
+
+    return jsonify(rouge_scores)
 
 if __name__ == '__main__':
     app.run(debug=True)
