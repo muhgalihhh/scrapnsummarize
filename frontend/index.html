@@ -133,8 +133,13 @@
 
             <h2>Hasil Akurasi ROUGE:</h2>
             <pre id="akurasi"></pre>
+            <h2>Grafik ROUGE Score:</h2>
+            <canvas id="chartRouge" width="400" height="200"></canvas>
+
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         document.getElementById('persentase_ringkasan').addEventListener('input', function () {
@@ -211,7 +216,7 @@
                 alert('Harap ambil dan ringkas berita terlebih dahulu!');
                 return;
             }
-            
+        
             try {
                 const hasilParsing = JSON.parse(hasilScraping);
                 const ringkasanParsing = JSON.parse(ringkasanData);
@@ -224,10 +229,7 @@
                 const response = await fetch('http://localhost:5000/cek_rouge', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        teks_asli: teksAsli, 
-                        ringkasan: ringkasan 
-                    })
+                    body: JSON.stringify({ teks_asli: teksAsli, ringkasan: ringkasan })
                 });
                 
                 if (!response.ok) {
@@ -236,11 +238,70 @@
                 
                 const data = await response.json();
                 akurasiElement.textContent = JSON.stringify(data, null, 2);
+                
+                // Tampilkan grafik
+                tampilkanGrafik(data);
             } catch (error) {
                 akurasiElement.textContent = `Error: ${error.message}`;
             }
         }
+        
+        function tampilkanGrafik(data) {
+            const ctx = document.getElementById('chartRouge').getContext('2d');
+        
+            // Extracting F1, Precision, and Recall scores for each ROUGE metric
+            const rouge1F1 = data.rouge1.f1;
+            const rouge1Precision = data.rouge1.precision;
+            const rouge1Recall = data.rouge1.recall;
+        
+            const rouge2F1 = data.rouge2.f1;
+            const rouge2Precision = data.rouge2.precision;
+            const rouge2Recall = data.rouge2.recall;
+        
+            const rougeLF1 = data.rougeL.f1;
+            const rougeLPrecision = data.rougeL.precision;
+            const rougeLRecall = data.rougeL.recall;
+        
+            // Create the chart using the scores for F1, Precision, and Recall
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['ROUGE-1', 'ROUGE-2', 'ROUGE-L'],
+                    datasets: [
+                        {
+                            label: 'F1 Score',
+                            data: [rouge1F1, rouge2F1, rougeLF1],
+                            backgroundColor: '#3498db',
+                        },
+                        {
+                            label: 'Precision',
+                            data: [rouge1Precision, rouge2Precision, rougeLPrecision],
+                            backgroundColor: '#2ecc71',
+                        },
+                        {
+                            label: 'Recall',
+                            data: [rouge1Recall, rouge2Recall, rougeLRecall],
+                            backgroundColor: '#e74c3c',
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        
+        
     </script>
 </body>
 </html>
-```
