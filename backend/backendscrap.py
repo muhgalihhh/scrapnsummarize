@@ -54,8 +54,9 @@ class BeritaScraper:
                 'judul': '#arttitle',
                 'penulis': '#penulis',
                 'tanggal': 'time',
-                'isi': '#article_content > p:not(.baca):not([class]):not([id])'
-            }
+                'isi': '.txt-article p:not(.baca-juga):not([class]):not([id])'
+            },
+            
         }
 
     def scrape_berita(self, url, jenis_website):
